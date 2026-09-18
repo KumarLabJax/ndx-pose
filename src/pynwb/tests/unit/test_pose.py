@@ -10,6 +10,7 @@ from pynwb.image import ImageSeries
 
 from ndx_pose import (
     CalibratedCamera,
+    ContourSeries,
     MultiCameraPoseEstimation,
     PoseEstimationSeries,
     Skeleton,
@@ -22,6 +23,7 @@ from ndx_pose import (
 )
 from ndx_pose.testing.mock.pose import (
     mock_CalibratedCamera,
+    mock_ContourSeries,
     mock_MultiCameraPoseEstimation,
     mock_PoseEstimation,
     mock_PoseEstimationSeries,
@@ -60,6 +62,92 @@ class TestPoseEstimationSeriesConstructor(TestCase):
         np.testing.assert_array_equal(pes.timestamps, timestamps)
         np.testing.assert_array_equal(pes.confidence, confidence)
         self.assertEqual(pes.confidence_definition, "Softmax output of the deep neural network.")
+
+
+class TestContourSeriesConstructor(TestCase):
+    def test_constructor(self):
+        # 100 frames, up to 3 contours per frame, up to 20 vertices per contour
+        data = np.random.randint(0, 500, size=(100, 3, 20, 2)).astype(np.int32)
+        vertex_count = np.random.randint(0, 21, size=(100, 3)).astype(np.uint32)
+        is_external = np.random.rand(100, 3) > 0.5
+        timestamps = np.linspace(0, 10, num=100)  # a timestamp for every frame
+        cs = ContourSeries(
+            name="contours",
+            description="Outline of the segmented animal.",
+            data=data,
+            vertex_count=vertex_count,
+            is_external=is_external,
+            unit="pixels",
+            timestamps=timestamps,
+        )
+
+        self.assertEqual(cs.name, "contours")
+        self.assertEqual(cs.description, "Outline of the segmented animal.")
+        np.testing.assert_array_equal(cs.data, data)
+        np.testing.assert_array_equal(cs.vertex_count, vertex_count)
+        np.testing.assert_array_equal(cs.is_external, is_external)
+        self.assertEqual(cs.unit, "pixels")
+        np.testing.assert_array_equal(cs.timestamps, timestamps)
+
+    def test_constructor_is_external_optional(self):
+        """is_external is optional: contours may be stored without marking holes."""
+        cs = ContourSeries(
+            name="contours",
+            data=np.zeros((4, 2, 5, 2)),
+            vertex_count=np.zeros((4, 2), dtype=np.uint32),
+            rate=30.0,
+        )
+        self.assertIsNone(cs.is_external)
+
+    def test_vertex_count_shape_mismatch_raises(self):
+        msg = (
+            "ContourSeries 'vertex_count' shape (4, 3) must match the first two dimensions of "
+            "'data' (4, 2) (num_frames, num_contours)."
+        )
+        with self.assertRaisesWith(ValueError, msg):
+            ContourSeries(
+                name="contours",
+                data=np.zeros((4, 2, 5, 2)),
+                vertex_count=np.zeros((4, 3), dtype=np.uint32),
+                rate=30.0,
+            )
+
+    def test_is_external_shape_mismatch_raises(self):
+        msg = (
+            "ContourSeries 'is_external' shape (4, 3) must match 'vertex_count' shape (4, 2) "
+            "(num_frames, num_contours)."
+        )
+        with self.assertRaisesWith(ValueError, msg):
+            ContourSeries(
+                name="contours",
+                data=np.zeros((4, 2, 5, 2)),
+                vertex_count=np.zeros((4, 2), dtype=np.uint32),
+                is_external=np.zeros((4, 3), dtype=bool),
+                rate=30.0,
+            )
+
+    def test_data_must_be_four_dimensional(self):
+        with self.assertRaises(ValueError):
+            ContourSeries(
+                name="contours",
+                data=np.zeros((4, 5, 2)),
+                vertex_count=np.zeros((4, 2), dtype=np.uint32),
+                rate=30.0,
+            )
+
+    def test_in_pose_estimation(self):
+        """A ContourSeries can be held by a PoseEstimation alongside the pose estimates."""
+        cs = mock_ContourSeries(name="contours")
+        pes = mock_PoseEstimationSeries(name="front_left_paw")
+        pe = PoseEstimation(name="subject1", pose_estimation_series=[pes], contour_series=[cs])
+
+        self.assertEqual(pe.contour_series["contours"], cs)
+        self.assertEqual(pe.pose_estimation_series["front_left_paw"], pes)
+
+    def test_pose_estimation_without_contours(self):
+        """contour_series is optional, so existing PoseEstimation usage is unaffected."""
+        pe = PoseEstimation(name="subject1", pose_estimation_series=[mock_PoseEstimationSeries()])
+        self.assertEqual(dict(pe.contour_series), {})
 
 
 class TestSkeleton(TestCase):

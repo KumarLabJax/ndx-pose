@@ -10,6 +10,7 @@ from pynwb.testing import TestCase, remove_test_file, NWBH5IOFlexMixin
 
 from ndx_pose import (
     CalibratedCamera,
+    ContourSeries,
     MultiCameraPoseEstimation,
     PoseEstimationSeries,
     PoseEstimation,
@@ -19,6 +20,7 @@ from ndx_pose import (
     TrainingFrames,
 )
 from ndx_pose.testing.mock.pose import (
+    mock_ContourSeries,
     mock_MultiCameraPoseEstimation,
     mock_PoseEstimationSeries,
     mock_Skeleton,
@@ -137,6 +139,102 @@ class TestPoseEstimationSeriesRoundtripPyNWB(NWBH5IOFlexMixin, TestCase):
 
     def getContainer(self, nwbfile: NWBFile):
         return nwbfile.processing["behavior"]["test_PES"]
+
+
+class TestContourSeriesRoundtrip(TestCase):
+    """Simple roundtrip test for ContourSeries."""
+
+    def setUp(self):
+        self.nwbfile = NWBFile(
+            session_description="session_description",
+            identifier="identifier",
+            session_start_time=datetime.datetime.now(datetime.timezone.utc),
+        )
+        self.path = "test_pose.nwb"
+
+    def tearDown(self):
+        remove_test_file(self.path)
+
+    def test_roundtrip(self):
+        """Write a ContourSeries nested in a PoseEstimation and verify every field survives."""
+        # 100 frames, up to 3 contours per frame, up to 20 vertices per contour
+        data = np.random.randint(0, 500, size=(100, 3, 20, 2)).astype(np.int32)
+        vertex_count = np.random.randint(0, 21, size=(100, 3)).astype(np.uint32)
+        is_external = np.random.rand(100, 3) > 0.5
+        timestamps = np.linspace(0, 10, num=100)  # a timestamp for every frame
+        cs = ContourSeries(
+            name="contours",
+            description="Outline of the segmented animal.",
+            data=data,
+            vertex_count=vertex_count,
+            is_external=is_external,
+            unit="pixels",
+            timestamps=timestamps,
+        )
+        pes = mock_PoseEstimationSeries(
+            name="front_left_paw", data=np.random.rand(100, 2), timestamps=timestamps
+        )
+        skeleton = mock_Skeleton(name="subject1")
+        pe = PoseEstimation(
+            name="subject1",
+            pose_estimation_series=[pes],
+            contour_series=[cs],
+            skeleton=skeleton,
+        )
+
+        behavior_pm = self.nwbfile.create_processing_module(name="behavior", description="processed behavioral data")
+        behavior_pm.add(Skeletons(skeletons=[skeleton]))
+        behavior_pm.add(pe)
+
+        with NWBHDF5IO(self.path, mode="w") as io:
+            io.write(self.nwbfile)
+
+        with NWBHDF5IO(self.path, mode="r", load_namespaces=True) as io:
+            read_nwbfile = io.read()
+            read_cs = read_nwbfile.processing["behavior"]["subject1"].contour_series["contours"]
+            self.assertContainerEqual(cs, read_cs)
+            # assertContainerEqual compares fields, but check the arrays explicitly: the padding
+            # and the integer dtype of the vertex positions are the point of this type.
+            np.testing.assert_array_equal(read_cs.data[:], data)
+            np.testing.assert_array_equal(read_cs.vertex_count[:], vertex_count)
+            np.testing.assert_array_equal(read_cs.is_external[:], is_external)
+            self.assertEqual(read_cs.data.dtype, data.dtype)
+
+    def test_roundtrip_no_is_external(self):
+        """is_external is optional and its absence must survive the roundtrip."""
+        cs = ContourSeries(
+            name="contours",
+            data=np.arange(4 * 2 * 5 * 2, dtype=np.int32).reshape((4, 2, 5, 2)),
+            vertex_count=np.full((4, 2), 5, dtype=np.uint32),
+            rate=30.0,
+            description="Outline without hole markings.",
+        )
+        behavior_pm = self.nwbfile.create_processing_module(name="behavior", description="processed behavioral data")
+        behavior_pm.add(cs)
+
+        with NWBHDF5IO(self.path, mode="w") as io:
+            io.write(self.nwbfile)
+
+        with NWBHDF5IO(self.path, mode="r", load_namespaces=True) as io:
+            read_nwbfile = io.read()
+            read_cs = read_nwbfile.processing["behavior"]["contours"]
+            self.assertIsNone(read_cs.is_external)
+            np.testing.assert_array_equal(read_cs.data[:], cs.data)
+
+
+class TestContourSeriesRoundtripPyNWB(NWBH5IOFlexMixin, TestCase):
+    """Complex, more complete roundtrip test for ContourSeries using pynwb.testing infrastructure."""
+
+    def getContainerType(self):
+        return "ContourSeries"
+
+    def addContainer(self):
+        cs = mock_ContourSeries(name="contours")
+        behavior_pm = self.nwbfile.create_processing_module(name="behavior", description="processed behavioral data")
+        behavior_pm.add(cs)
+
+    def getContainer(self, nwbfile: NWBFile):
+        return nwbfile.processing["behavior"]["contours"]
 
 
 class TestPoseEstimationRoundtrip(TestCase):

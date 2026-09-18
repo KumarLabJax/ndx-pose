@@ -9,6 +9,7 @@ from pynwb.testing.mock.device import mock_Device
 
 from ...pose import (
     CalibratedCamera,
+    ContourSeries,
     MultiCameraPoseEstimation,
     PoseEstimationSeries,
     Skeleton,
@@ -61,6 +62,49 @@ def mock_PoseEstimationSeries(
     )
 
     return pes
+
+
+def mock_ContourSeries(
+    *,
+    name: Optional[str] = None,
+    description: Optional[str] = "A description.",
+    data=None,
+    vertex_count=None,
+    is_external=None,
+    unit: Optional[str] = "pixels",
+    resolution: float = -1.0,
+    conversion: float = 1.0,
+    offset: float = 0.0,
+    timestamps=None,
+    starting_time: Optional[float] = None,
+    rate: Optional[float] = None,
+):
+    if data is None:
+        # 10 frames, 2 contour slots, up to 5 vertices each
+        data = np.arange(10 * 2 * 5 * 2, dtype=np.int32).reshape((10, 2, 5, 2))
+    if vertex_count is None:
+        # the first slot uses every vertex, the second is unused, so the mock covers padding
+        vertex_count = np.tile(np.array([5, 0], dtype=np.uint32), (len(data), 1))
+    if is_external is None:
+        is_external = np.tile(np.array([True, False]), (len(data), 1))
+    if timestamps is not None:
+        rate = None
+    if timestamps is None and rate is None:
+        timestamps = np.linspace(0, 10, num=len(data))  # a timestamp for every frame
+    return ContourSeries(
+        name=name or name_generator("ContourSeries"),
+        data=data,
+        vertex_count=vertex_count,
+        is_external=is_external,
+        unit=unit,
+        resolution=resolution,
+        conversion=conversion,
+        offset=offset,
+        timestamps=timestamps,
+        starting_time=starting_time,
+        rate=rate,
+        description=description,
+    )
 
 
 def mock_Skeleton(

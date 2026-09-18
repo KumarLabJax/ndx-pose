@@ -69,6 +69,62 @@ groups:
       doc: Description of how the confidence was computed, e.g., 'Softmax output
         of the deep neural network'.
       required: false
+- neurodata_type_def: ContourSeries
+  neurodata_type_inc: TimeSeries
+  doc: "Polygon contours outlining a segmented instance over time. Each frame holds
+    a fixed number of contour slots, and 'vertex_count' gives the number of valid
+    vertices in each slot, so trailing slots and trailing vertices are unused padding.
+    More than one contour may be needed to describe an instance on a frame: an outer
+    boundary plus one or more holes, or a body that an occluder splits into disjoint
+    parts. Store this inside a PoseEstimation object to associate the contours with
+    the pose estimates and subject for the same instance."
+  datasets:
+  - name: data
+    dtype: numeric
+    dims:
+    - num_frames
+    - num_contours
+    - num_vertices
+    - x, y
+    shape:
+    - null
+    - null
+    - null
+    - 2
+    doc: Contour vertex positions (x, y). Only the first 'vertex_count' vertices
+      of each contour slot hold a position; the remaining values are padding and
+      carry no meaning.
+    attributes:
+    - name: unit
+      dtype: text
+      default_value: pixels
+      doc: Base unit of measurement for working with the data. The default value
+        is 'pixels'. Actual stored values are not necessarily stored in these
+        units. To access the data in these units, multiply 'data' by
+        'conversion'.
+      required: false
+  - name: vertex_count
+    dtype: uint32
+    dims:
+    - num_frames
+    - num_contours
+    shape:
+    - null
+    - null
+    doc: Number of valid vertices in each contour slot. 0 means the slot holds
+      no contour on that frame.
+  - name: is_external
+    dtype: bool
+    dims:
+    - num_frames
+    - num_contours
+    shape:
+    - null
+    - null
+    doc: True where the contour slot is an external boundary, i.e. an outer edge
+      of the instance, and False where it is an internal boundary, i.e. a hole.
+      Has no meaning where 'vertex_count' is 0.
+    quantity: '?'
 - neurodata_type_def: PoseEstimation
   neurodata_type_inc: NWBDataInterface
   default_name: PoseEstimation
@@ -132,6 +188,10 @@ groups:
   groups:
   - neurodata_type_inc: PoseEstimationSeries
     doc: Estimated position data for each body part.
+    quantity: '*'
+  - neurodata_type_inc: ContourSeries
+    doc: Segmentation contours outlining the instance described by this
+      PoseEstimation.
     quantity: '*'
   links:
   - target_type: Skeleton

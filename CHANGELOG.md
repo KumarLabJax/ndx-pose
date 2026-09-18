@@ -11,6 +11,14 @@
   `PoseEstimation.device`. @alessandratrapani (#57)
 
 ### New neurodata types
+- Added `ContourSeries` neurodata type for storing polygon contours that outline a segmented instance over
+  time, e.g. the per-frame silhouette that an instance segmentation model produces alongside keypoints. Each
+  frame holds a fixed number of contour slots and `vertex_count` records how many vertices of each slot are
+  real, so the trailing padding needed to keep the array rectangular is never mistaken for data. `is_external`
+  distinguishes an outer boundary from a hole, so an animal that curls around a gap, or that an occluder
+  splits into disjoint parts, is represented exactly. A `PoseEstimation` object can now hold `ContourSeries`
+  children in addition to `PoseEstimationSeries`, which keeps the contours, the keypoints, and the subject for
+  one instance together. @gbeane (#67)
 - Added `CalibratedCamera` neurodata type, a `Device` extended with intrinsic and extrinsic calibration
   parameters (intrinsic matrix, rotation matrix, translation vector, distortion coefficients) for that
   single camera. Because it is a `Device`, it is added once to the NWBFile and can be linked to by

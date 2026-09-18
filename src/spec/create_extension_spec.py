@@ -145,6 +145,66 @@ def main():
         ],
     )
 
+    contour_series = NWBGroupSpec(
+        neurodata_type_def="ContourSeries",
+        neurodata_type_inc="TimeSeries",
+        doc=(
+            "Polygon contours outlining a segmented instance over time. Each frame holds a fixed number of "
+            "contour slots, and 'vertex_count' gives the number of valid vertices in each slot, so trailing "
+            "slots and trailing vertices are unused padding. More than one contour may be needed to describe "
+            "an instance on a frame: an outer boundary plus one or more holes, or a body that an occluder "
+            "splits into disjoint parts. Store this inside a PoseEstimation object to associate the contours "
+            "with the pose estimates and subject for the same instance."
+        ),
+        datasets=[
+            NWBDatasetSpec(
+                name="data",
+                doc=(
+                    "Contour vertex positions (x, y). Only the first 'vertex_count' vertices of each contour "
+                    "slot hold a position; the remaining values are padding and carry no meaning."
+                ),
+                dtype="numeric",
+                dims=["num_frames", "num_contours", "num_vertices", "x, y"],
+                shape=[None, None, None, 2],
+                attributes=[
+                    NWBAttributeSpec(
+                        name="unit",
+                        dtype="text",
+                        default_value="pixels",
+                        doc=(
+                            "Base unit of measurement for working with the data. The default value "
+                            "is 'pixels'. Actual stored values are not necessarily stored in these units. "
+                            "To access the data in these units, multiply 'data' by 'conversion'."
+                        ),
+                        required=True,
+                    ),
+                ],
+            ),
+            NWBDatasetSpec(
+                name="vertex_count",
+                doc=(
+                    "Number of valid vertices in each contour slot. 0 means the slot holds no contour on "
+                    "that frame."
+                ),
+                dtype="uint32",
+                dims=["num_frames", "num_contours"],
+                shape=[None, None],
+            ),
+            NWBDatasetSpec(
+                name="is_external",
+                doc=(
+                    "True where the contour slot is an external boundary, i.e. an outer edge of the instance, "
+                    "and False where it is an internal boundary, i.e. a hole. Has no meaning where "
+                    "'vertex_count' is 0."
+                ),
+                dtype="bool",
+                dims=["num_frames", "num_contours"],
+                shape=[None, None],
+                quantity="?",
+            ),
+        ],
+    )
+
     pose_estimation = NWBGroupSpec(
         neurodata_type_def="PoseEstimation",
         neurodata_type_inc="NWBDataInterface",
@@ -160,6 +220,11 @@ def main():
             NWBGroupSpec(
                 neurodata_type_inc="PoseEstimationSeries",
                 doc="Estimated position data for each body part.",
+                quantity="*",
+            ),
+            NWBGroupSpec(
+                neurodata_type_inc="ContourSeries",
+                doc="Segmentation contours outlining the instance described by this PoseEstimation.",
                 quantity="*",
             ),
         ],
@@ -551,6 +616,7 @@ def main():
     new_data_types = [
         skeleton,
         pose_estimation_series,
+        contour_series,
         pose_estimation,
         training_frame,
         skeleton_instance,
