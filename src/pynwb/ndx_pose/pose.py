@@ -109,12 +109,14 @@ class ContourSeries(TimeSeries):
     vertices in each slot, so trailing slots and trailing vertices in ``data`` are unused padding
     and carry no meaning. More than one contour may be needed to describe an instance on a frame:
     an outer boundary plus one or more holes, or a body that an occluder splits into disjoint parts.
+    ``contour_group``, when known, records which component each contour belongs to, so a hole stays
+    attached to the part of a split instance that contains it.
 
     Store this inside a PoseEstimation object to associate the contours with the pose estimates and
     subject for the same instance.
     """
 
-    __nwbfields__ = ("vertex_count", "is_external")
+    __nwbfields__ = ("vertex_count", "is_external", "contour_group")
 
     @docval(
         {
@@ -153,6 +155,18 @@ class ContourSeries(TimeSeries):
             "default": None,
         },
         {
+            "name": "contour_group",
+            "type": ("array_data", "data"),
+            "shape": (None, None),
+            "doc": (
+                "Index grouping contours into connected components within a frame. Contours "
+                "describing the same component share a value, and a hole carries the value of the "
+                "component that contains it. Has no meaning where 'vertex_count' is 0. Omit when "
+                "the component structure is not known."
+            ),
+            "default": None,
+        },
+        {
             "name": "unit",
             "type": str,
             "doc": (
@@ -179,7 +193,9 @@ class ContourSeries(TimeSeries):
     )
     def __init__(self, **kwargs):
         """Construct a new ContourSeries representing the outline of a segmented instance over time."""
-        vertex_count, is_external = popargs("vertex_count", "is_external", kwargs)
+        vertex_count, is_external, contour_group = popargs(
+            "vertex_count", "is_external", "contour_group", kwargs
+        )
         data = kwargs["data"]
 
         # When 'data' links another TimeSeries, its shape belongs to the target, so there is
@@ -194,17 +210,20 @@ class ContourSeries(TimeSeries):
                 "ContourSeries 'vertex_count' shape %s must match the first two dimensions of "
                 "'data' %s (num_frames, num_contours)." % (count_shape, data_shape[:2])
             )
-        if is_external is not None:
-            external_shape = get_data_shape(is_external)
-            if not _shapes_agree(count_shape, external_shape):
+        for name, value in (("is_external", is_external), ("contour_group", contour_group)):
+            if value is None:
+                continue
+            value_shape = get_data_shape(value)
+            if not _shapes_agree(count_shape, value_shape):
                 raise ValueError(
-                    "ContourSeries 'is_external' shape %s must match 'vertex_count' shape %s "
-                    "(num_frames, num_contours)." % (external_shape, count_shape)
+                    "ContourSeries '%s' shape %s must match 'vertex_count' shape %s "
+                    "(num_frames, num_contours)." % (name, value_shape, count_shape)
                 )
 
         super().__init__(**kwargs)
         self.vertex_count = vertex_count
         self.is_external = is_external
+        self.contour_group = contour_group
 
 
 @register_class("PoseEstimation", "ndx-pose")

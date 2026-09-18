@@ -135,6 +135,53 @@ class TestContourSeriesConstructor(TestCase):
                 rate=30.0,
             )
 
+    def test_constructor_contour_group(self):
+        """contour_group records which component each contour belongs to."""
+        # two disjoint blobs, and a hole belonging to the second one
+        data = np.zeros((4, 3, 6, 2), dtype=np.int32)
+        vertex_count = np.full((4, 3), 6, dtype=np.uint32)
+        is_external = np.tile(np.array([True, True, False]), (4, 1))
+        contour_group = np.tile(np.array([0, 1, 1], dtype=np.uint32), (4, 1))
+
+        cs = ContourSeries(
+            name="contours",
+            data=data,
+            vertex_count=vertex_count,
+            is_external=is_external,
+            contour_group=contour_group,
+            rate=30.0,
+        )
+
+        np.testing.assert_array_equal(cs.contour_group, contour_group)
+        # the hole is attributed to the second blob, not the first
+        assert cs.contour_group[0, 2] == cs.contour_group[0, 1]
+        assert cs.contour_group[0, 2] != cs.contour_group[0, 0]
+
+    def test_contour_group_is_optional(self):
+        """contour_group is omitted when the component structure is not known."""
+        cs = ContourSeries(
+            name="contours",
+            data=np.zeros((4, 2, 5, 2)),
+            vertex_count=np.zeros((4, 2), dtype=np.uint32),
+            is_external=np.ones((4, 2), dtype=bool),
+            rate=30.0,
+        )
+        self.assertIsNone(cs.contour_group)
+
+    def test_contour_group_shape_mismatch_raises(self):
+        msg = (
+            "ContourSeries 'contour_group' shape (4, 3) must match 'vertex_count' shape (4, 2) "
+            "(num_frames, num_contours)."
+        )
+        with self.assertRaisesWith(ValueError, msg):
+            ContourSeries(
+                name="contours",
+                data=np.zeros((4, 2, 5, 2)),
+                vertex_count=np.zeros((4, 2), dtype=np.uint32),
+                contour_group=np.zeros((4, 3), dtype=np.uint32),
+                rate=30.0,
+            )
+
     def test_in_pose_estimation(self):
         """A ContourSeries can be held by a PoseEstimation alongside the pose estimates."""
         cs = mock_ContourSeries(name="contours")

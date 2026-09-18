@@ -71,6 +71,7 @@ def mock_ContourSeries(
     data=None,
     vertex_count=None,
     is_external=None,
+    contour_group=None,
     unit: Optional[str] = "pixels",
     resolution: float = -1.0,
     conversion: float = 1.0,
@@ -87,6 +88,9 @@ def mock_ContourSeries(
         vertex_count = np.tile(np.array([5, 0], dtype=np.uint32), (len(data), 1))
     if is_external is None:
         is_external = np.tile(np.array([True, False]), (len(data), 1))
+    if contour_group is None:
+        # both slots describe one component, so the unused second slot shares its label
+        contour_group = np.zeros((len(data), data.shape[1]), dtype=np.uint32)
     if timestamps is not None:
         rate = None
     if timestamps is None and rate is None:
@@ -96,6 +100,7 @@ def mock_ContourSeries(
         data=data,
         vertex_count=vertex_count,
         is_external=is_external,
+        contour_group=contour_group,
         unit=unit,
         resolution=resolution,
         conversion=conversion,

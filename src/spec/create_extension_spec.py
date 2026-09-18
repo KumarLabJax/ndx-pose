@@ -202,6 +202,23 @@ def main():
                 shape=[None, None],
                 quantity="?",
             ),
+            NWBDatasetSpec(
+                name="contour_group",
+                doc=(
+                    "Index grouping contours into connected components within a frame. Contours describing "
+                    "the same component share a value, and a hole carries the value of the component that "
+                    "contains it, so an instance that an occluder splits into disjoint parts keeps each hole "
+                    "with the part it belongs to. Values are arbitrary labels that need only be distinct "
+                    "within a frame, not indices into anything. Has no meaning where 'vertex_count' is 0. "
+                    "Omit this dataset when the component structure is not known; a consumer can then "
+                    "attribute each hole to the smallest external contour containing it, which is correct "
+                    "even when one component lies inside another's hole."
+                ),
+                dtype="uint32",
+                dims=["num_frames", "num_contours"],
+                shape=[None, None],
+                quantity="?",
+            ),
         ],
     )
 

@@ -31,9 +31,10 @@ This extension consists of several new neurodata types. They are divided into tw
   silhouette an instance segmentation model produces alongside the keypoints. Each frame holds a fixed number of
   contour slots, and `vertex_count` records how many vertices of each slot are real, so the padding needed to keep
   the array rectangular is never mistaken for data. `is_external` distinguishes an outer boundary from a hole, so an
-  animal that curls around a gap, or that an occluder splits into disjoint parts, is represented exactly. Store a
-  `ContourSeries` inside a `PoseEstimation` object to keep the contours, the keypoints, and the subject for one
-  instance together.
+  animal that curls around a gap, or that an occluder splits into disjoint parts, is represented exactly. The
+  optional `contour_group` records which connected component each contour belongs to, so a hole stays attached to
+  the part of a split instance that contains it; omit it when that structure is not known. Store a `ContourSeries`
+  inside a `PoseEstimation` object to keep the contours, the keypoints, and the subject for one instance together.
 
 ### Multi-camera 3D pose estimation types
 
@@ -164,6 +165,7 @@ classDiagram
             data : array[numeric; dims [frame, contour, vertex, [x, y]]]
             vertex_count : array[uint32; dims [frame, contour]]
             is_external : array[bool; dims [frame, contour]], optional
+            contour_group : array[uint32; dims [frame, contour]], optional
         }
 
         class PoseEstimation {
@@ -262,6 +264,7 @@ classDiagram
             data : array[numeric; dims [frame, contour, vertex, [x, y]]]
             vertex_count : array[uint32; dims [frame, contour]]
             is_external : array[bool; dims [frame, contour]], optional
+            contour_group : array[uint32; dims [frame, contour]], optional
         }
 
         class PoseEstimation {

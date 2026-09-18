@@ -750,3 +750,77 @@ class TestMultiCameraPoseEstimationRoundtripPyNWB(NWBH5IOFlexMixin, TestCase):
 
     def getContainer(self, nwbfile: NWBFile):
         return nwbfile.processing["behavior"]["MultiCameraPoseEstimation"]
+
+
+class TestContourSeriesGroupRoundtrip(TestCase):
+    """Roundtrip test for contour_group, the field that disambiguates split instances."""
+
+    def setUp(self):
+        self.nwbfile = NWBFile(
+            session_description="session_description",
+            identifier="identifier",
+            session_start_time=datetime.datetime.now(datetime.timezone.utc),
+        )
+        self.path = "test_pose.nwb"
+
+    def tearDown(self):
+        remove_test_file(self.path)
+
+    def test_roundtrip_split_instance_with_hole(self):
+        """An instance split into two blobs, one holding a hole, survives unambiguously.
+
+        Without contour_group the file records that a hole exists but not which blob owns
+        it, which is the case this field exists for.
+        """
+        num_frames = 8
+        data = np.zeros((num_frames, 3, 6, 2), dtype=np.int32)
+        # blob A, blob B, and a hole inside blob B
+        data[:, 0] = np.array([[0, 0], [10, 0], [10, 10], [0, 10], [0, 0], [0, 0]])
+        data[:, 1] = np.array([[50, 0], [80, 0], [80, 30], [50, 30], [50, 0], [50, 0]])
+        data[:, 2] = np.array([[60, 10], [70, 10], [70, 20], [60, 20], [60, 10], [60, 10]])
+        vertex_count = np.tile(np.array([4, 4, 4], dtype=np.uint32), (num_frames, 1))
+        is_external = np.tile(np.array([True, True, False]), (num_frames, 1))
+        contour_group = np.tile(np.array([0, 1, 1], dtype=np.uint32), (num_frames, 1))
+
+        cs = ContourSeries(
+            name="contours",
+            description="Instance split in two, the second part holding a hole.",
+            data=data,
+            vertex_count=vertex_count,
+            is_external=is_external,
+            contour_group=contour_group,
+            rate=30.0,
+        )
+        behavior_pm = self.nwbfile.create_processing_module(name="behavior", description="d")
+        behavior_pm.add(cs)
+
+        with NWBHDF5IO(self.path, mode="w") as io:
+            io.write(self.nwbfile)
+
+        with NWBHDF5IO(self.path, mode="r", load_namespaces=True) as io:
+            read_cs = io.read().processing["behavior"]["contours"]
+            np.testing.assert_array_equal(read_cs.contour_group[:], contour_group)
+            np.testing.assert_array_equal(read_cs.is_external[:], is_external)
+
+            # the hole reads back attributed to the blob that contains it
+            groups, external = read_cs.contour_group[0], read_cs.is_external[0]
+            (hole,) = np.flatnonzero(~np.asarray(external))
+            owners = [i for i in np.flatnonzero(np.asarray(external)) if groups[i] == groups[hole]]
+            assert owners == [1]
+
+    def test_roundtrip_without_contour_group(self):
+        """Omitting contour_group must survive as an absent field, not a zero-filled one."""
+        cs = ContourSeries(
+            name="contours",
+            data=np.zeros((4, 2, 5, 2)),
+            vertex_count=np.full((4, 2), 5, dtype=np.uint32),
+            is_external=np.ones((4, 2), dtype=bool),
+            rate=30.0,
+        )
+        self.nwbfile.create_processing_module(name="behavior", description="d").add(cs)
+
+        with NWBHDF5IO(self.path, mode="w") as io:
+            io.write(self.nwbfile)
+
+        with NWBHDF5IO(self.path, mode="r", load_namespaces=True) as io:
+            assert io.read().processing["behavior"]["contours"].contour_group is None
