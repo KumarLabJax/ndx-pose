@@ -164,6 +164,7 @@ class TestContourSeriesRoundtrip(TestCase):
         timestamps = np.linspace(0, 10, num=100)  # a timestamp for every frame
         cs = ContourSeries(
             name="contours",
+            reference_frame="(0, 0) is the top left corner of the video frame.",
             description="Outline of the segmented animal.",
             data=data,
             vertex_count=vertex_count,
@@ -199,11 +200,13 @@ class TestContourSeriesRoundtrip(TestCase):
             np.testing.assert_array_equal(read_cs.vertex_count[:], vertex_count)
             np.testing.assert_array_equal(read_cs.is_external[:], is_external)
             self.assertEqual(read_cs.data.dtype, data.dtype)
+            self.assertEqual(read_cs.reference_frame, cs.reference_frame)
 
     def test_roundtrip_no_is_external(self):
         """is_external is optional and its absence must survive the roundtrip."""
         cs = ContourSeries(
             name="contours",
+            reference_frame="(0, 0) is the top left corner of the video frame.",
             data=np.arange(4 * 2 * 5 * 2, dtype=np.int32).reshape((4, 2, 5, 2)),
             vertex_count=np.full((4, 2), 5, dtype=np.uint32),
             rate=30.0,
@@ -784,6 +787,7 @@ class TestContourSeriesGroupRoundtrip(TestCase):
 
         cs = ContourSeries(
             name="contours",
+            reference_frame="(0, 0) is the top left corner of the video frame.",
             description="Instance split in two, the second part holding a hole.",
             data=data,
             vertex_count=vertex_count,
@@ -812,6 +816,7 @@ class TestContourSeriesGroupRoundtrip(TestCase):
         """Omitting contour_group must survive as an absent field, not a zero-filled one."""
         cs = ContourSeries(
             name="contours",
+            reference_frame="(0, 0) is the top left corner of the video frame.",
             data=np.zeros((4, 2, 5, 2)),
             vertex_count=np.full((4, 2), 5, dtype=np.uint32),
             is_external=np.ones((4, 2), dtype=bool),

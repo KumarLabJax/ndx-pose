@@ -105,6 +105,7 @@ contour_series = ContourSeries(
     name="contours",
     description="Outline of the segmented animal, with holes and occluder-split parts.",
     data=contour_data,
+    reference_frame="(0,0) is the top left corner of the video frame.",
     vertex_count=vertex_count,
     is_external=is_external,
     contour_group=contour_group,

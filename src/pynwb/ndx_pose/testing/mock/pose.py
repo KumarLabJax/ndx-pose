@@ -68,6 +68,7 @@ def mock_ContourSeries(
     *,
     name: Optional[str] = None,
     description: Optional[str] = "A description.",
+    reference_frame: str = "(0, 0) is the top left corner of the video frame.",
     data=None,
     vertex_count=None,
     is_external=None,
@@ -97,6 +98,7 @@ def mock_ContourSeries(
         timestamps = np.linspace(0, 10, num=len(data))  # a timestamp for every frame
     return ContourSeries(
         name=name or name_generator("ContourSeries"),
+        reference_frame=reference_frame,
         data=data,
         vertex_count=vertex_count,
         is_external=is_external,

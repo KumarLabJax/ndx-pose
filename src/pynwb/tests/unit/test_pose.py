@@ -73,6 +73,7 @@ class TestContourSeriesConstructor(TestCase):
         timestamps = np.linspace(0, 10, num=100)  # a timestamp for every frame
         cs = ContourSeries(
             name="contours",
+            reference_frame="(0, 0) is the top left corner of the video frame.",
             description="Outline of the segmented animal.",
             data=data,
             vertex_count=vertex_count,
@@ -87,12 +88,28 @@ class TestContourSeriesConstructor(TestCase):
         np.testing.assert_array_equal(cs.vertex_count, vertex_count)
         np.testing.assert_array_equal(cs.is_external, is_external)
         self.assertEqual(cs.unit, "pixels")
+        self.assertEqual(cs.reference_frame, "(0, 0) is the top left corner of the video frame.")
         np.testing.assert_array_equal(cs.timestamps, timestamps)
+
+    def test_reference_frame_is_required(self):
+        """Contours are spatial, so the frame their coordinates are in must be recorded.
+
+        ContourSeries extends TimeSeries, which carries no coordinate convention of its own,
+        so without this a reader has no way to know where (0, 0) is or which way y points.
+        """
+        with self.assertRaises(TypeError):
+            ContourSeries(
+                name="contours",
+                data=np.zeros((4, 2, 5, 2)),
+                vertex_count=np.zeros((4, 2), dtype=np.uint32),
+                rate=30.0,
+            )
 
     def test_constructor_is_external_optional(self):
         """is_external is optional: contours may be stored without marking holes."""
         cs = ContourSeries(
             name="contours",
+            reference_frame="(0, 0) is the top left corner of the video frame.",
             data=np.zeros((4, 2, 5, 2)),
             vertex_count=np.zeros((4, 2), dtype=np.uint32),
             rate=30.0,
@@ -107,6 +124,7 @@ class TestContourSeriesConstructor(TestCase):
         with self.assertRaisesWith(ValueError, msg):
             ContourSeries(
                 name="contours",
+                reference_frame="(0, 0) is the top left corner of the video frame.",
                 data=np.zeros((4, 2, 5, 2)),
                 vertex_count=np.zeros((4, 3), dtype=np.uint32),
                 rate=30.0,
@@ -120,6 +138,7 @@ class TestContourSeriesConstructor(TestCase):
         with self.assertRaisesWith(ValueError, msg):
             ContourSeries(
                 name="contours",
+                reference_frame="(0, 0) is the top left corner of the video frame.",
                 data=np.zeros((4, 2, 5, 2)),
                 vertex_count=np.zeros((4, 2), dtype=np.uint32),
                 is_external=np.zeros((4, 3), dtype=bool),
@@ -130,6 +149,7 @@ class TestContourSeriesConstructor(TestCase):
         with self.assertRaises(ValueError):
             ContourSeries(
                 name="contours",
+                reference_frame="(0, 0) is the top left corner of the video frame.",
                 data=np.zeros((4, 5, 2)),
                 vertex_count=np.zeros((4, 2), dtype=np.uint32),
                 rate=30.0,
@@ -145,6 +165,7 @@ class TestContourSeriesConstructor(TestCase):
 
         cs = ContourSeries(
             name="contours",
+            reference_frame="(0, 0) is the top left corner of the video frame.",
             data=data,
             vertex_count=vertex_count,
             is_external=is_external,
@@ -161,6 +182,7 @@ class TestContourSeriesConstructor(TestCase):
         """contour_group is omitted when the component structure is not known."""
         cs = ContourSeries(
             name="contours",
+            reference_frame="(0, 0) is the top left corner of the video frame.",
             data=np.zeros((4, 2, 5, 2)),
             vertex_count=np.zeros((4, 2), dtype=np.uint32),
             is_external=np.ones((4, 2), dtype=bool),
@@ -176,6 +198,7 @@ class TestContourSeriesConstructor(TestCase):
         with self.assertRaisesWith(ValueError, msg):
             ContourSeries(
                 name="contours",
+                reference_frame="(0, 0) is the top left corner of the video frame.",
                 data=np.zeros((4, 2, 5, 2)),
                 vertex_count=np.zeros((4, 2), dtype=np.uint32),
                 contour_group=np.zeros((4, 3), dtype=np.uint32),

@@ -15,7 +15,8 @@
   time, e.g. the per-frame silhouette that an instance segmentation model produces alongside keypoints. Each
   frame holds a fixed number of contour slots and `vertex_count` records how many vertices of each slot are
   real, so the trailing padding needed to keep the array rectangular is never mistaken for data. `is_external`
-  distinguishes an outer boundary from a hole, and the optional `contour_group` records which connected
+  distinguishes an outer boundary from a hole, `reference_frame` records where (0, 0) is and which way each axis
+  increases just as a `SpatialSeries` does, and the optional `contour_group` records which connected
   component each contour belongs to, so a hole stays attached to the part of a split instance that contains
   it rather than being left ambiguous. Together they represent exactly an animal that curls around a gap, or
   that an occluder splits into disjoint parts. A `PoseEstimation` object can now hold `ContourSeries`

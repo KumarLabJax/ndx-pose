@@ -112,11 +112,15 @@ class ContourSeries(TimeSeries):
     ``contour_group``, when known, records which component each contour belongs to, so a hole stays
     attached to the part of a split instance that contains it.
 
+    Vertex positions are in the frame of reference described by ``reference_frame``. This type extends
+    TimeSeries rather than SpatialSeries, whose ``data`` may have at most two dimensions, so it declares
+    ``reference_frame`` itself instead of inheriting it.
+
     Store this inside a PoseEstimation object to associate the contours with the pose estimates and
     subject for the same instance.
     """
 
-    __nwbfields__ = ("vertex_count", "is_external", "contour_group")
+    __nwbfields__ = ("reference_frame", "vertex_count", "is_external", "contour_group")
 
     @docval(
         {
@@ -132,6 +136,15 @@ class ContourSeries(TimeSeries):
                 "Contour vertex positions (x, y), with shape "
                 "(num_frames, num_contours, num_vertices, 2). Only the first 'vertex_count' "
                 "vertices of each contour slot hold a position; the rest are padding."
+            ),
+        },
+        {
+            "name": "reference_frame",
+            "type": str,
+            "doc": (
+                "Description defining what the zero-position (0, 0) of the vertex coordinates is and "
+                "which way each axis increases. Give the same frame of reference as the "
+                "PoseEstimationSeries objects describing the same instance."
             ),
         },
         {
@@ -193,8 +206,8 @@ class ContourSeries(TimeSeries):
     )
     def __init__(self, **kwargs):
         """Construct a new ContourSeries representing the outline of a segmented instance over time."""
-        vertex_count, is_external, contour_group = popargs(
-            "vertex_count", "is_external", "contour_group", kwargs
+        reference_frame, vertex_count, is_external, contour_group = popargs(
+            "reference_frame", "vertex_count", "is_external", "contour_group", kwargs
         )
         data = kwargs["data"]
 
@@ -221,6 +234,7 @@ class ContourSeries(TimeSeries):
                 )
 
         super().__init__(**kwargs)
+        self.reference_frame = reference_frame
         self.vertex_count = vertex_count
         self.is_external = is_external
         self.contour_group = contour_group

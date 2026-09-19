@@ -153,7 +153,8 @@ def main():
             "contour slots, and 'vertex_count' gives the number of valid vertices in each slot, so trailing "
             "slots and trailing vertices are unused padding. More than one contour may be needed to describe "
             "an instance on a frame: an outer boundary plus one or more holes, or a body that an occluder "
-            "splits into disjoint parts. Store this inside a PoseEstimation object to associate the contours "
+            "splits into disjoint parts. Vertex positions are in the frame of reference described by "
+            "'reference_frame'. Store this inside a PoseEstimation object to associate the contours "
             "with the pose estimates and subject for the same instance."
         ),
         datasets=[
@@ -218,6 +219,19 @@ def main():
                 dims=["num_frames", "num_contours"],
                 shape=[None, None],
                 quantity="?",
+            ),
+            NWBDatasetSpec(
+                name="reference_frame",
+                doc=(
+                    "Description defining what the zero-position (0, 0) of the vertex coordinates is and "
+                    "which way each axis increases, e.g. '(0, 0) is the top left corner of the video frame, "
+                    "x increases rightward and y increases downward'. This is the same description a "
+                    "SpatialSeries carries; ContourSeries extends TimeSeries rather than SpatialSeries "
+                    "because the vertex array has more dimensions than a SpatialSeries permits, so the "
+                    "field is declared here instead of inherited. Give the same frame of reference as the "
+                    "PoseEstimationSeries objects describing the same instance."
+                ),
+                dtype="text",
             ),
         ],
     )
