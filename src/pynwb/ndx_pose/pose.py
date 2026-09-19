@@ -209,15 +209,15 @@ class ContourSeries(TimeSeries):
         reference_frame, vertex_count, is_external, contour_group = popargs(
             "reference_frame", "vertex_count", "is_external", "contour_group", kwargs
         )
-        data = kwargs["data"]
 
-        # When 'data' links another TimeSeries, its shape belongs to the target, so there is
-        # nothing here to cross-check 'vertex_count' against.
-        data_shape = None if isinstance(data, TimeSeries) else get_data_shape(data)
+        # Passing a TimeSeries as 'data' to link another series resolves to that series' own
+        # array before this runs, so the shape here is the one the file will hold either way.
+        # get_data_shape still reports None for a shape it cannot determine without consuming
+        # an iterator, so skip the cross-check in that case rather than guess at it.
+        data_shape = get_data_shape(kwargs["data"])
         count_shape = get_data_shape(vertex_count)
-        # Compare only the dimensions both shapes report. get_data_shape returns None for a
-        # dimension whose length an iterator cannot give without consuming it, and the h5py
-        # datasets read back from a file always report concrete lengths.
+        # Compare only the dimensions both shapes report; the h5py datasets read back from a
+        # file always report concrete lengths.
         if data_shape is not None and not _shapes_agree(data_shape[:2], count_shape):
             raise ValueError(
                 "ContourSeries 'vertex_count' shape %s must match the first two dimensions of "

@@ -105,6 +105,46 @@ class TestContourSeriesConstructor(TestCase):
                 rate=30.0,
             )
 
+    def test_data_may_link_another_series(self):
+        """'data' may link another TimeSeries, as it may on any TimeSeries."""
+        base = ContourSeries(
+            name="base",
+            reference_frame="(0, 0) is the top left corner of the video frame.",
+            data=np.zeros((4, 2, 5, 2), dtype=np.int32),
+            vertex_count=np.full((4, 2), 5, dtype=np.uint32),
+            rate=30.0,
+        )
+        linked = ContourSeries(
+            name="linked",
+            reference_frame="(0, 0) is the top left corner of the video frame.",
+            data=base,
+            vertex_count=np.full((4, 2), 5, dtype=np.uint32),
+            rate=30.0,
+        )
+        np.testing.assert_array_equal(linked.data, base.data)
+
+    def test_linked_data_is_still_shape_checked(self):
+        """A linked 'data' resolves to the target's array, so the cross-check still applies."""
+        base = ContourSeries(
+            name="base",
+            reference_frame="(0, 0) is the top left corner of the video frame.",
+            data=np.zeros((4, 2, 5, 2), dtype=np.int32),
+            vertex_count=np.full((4, 2), 5, dtype=np.uint32),
+            rate=30.0,
+        )
+        msg = (
+            "ContourSeries 'vertex_count' shape (4, 9) must match the first two dimensions of "
+            "'data' (4, 2) (num_frames, num_contours)."
+        )
+        with self.assertRaisesWith(ValueError, msg):
+            ContourSeries(
+                name="linked",
+                reference_frame="(0, 0) is the top left corner of the video frame.",
+                data=base,
+                vertex_count=np.full((4, 9), 5, dtype=np.uint32),
+                rate=30.0,
+            )
+
     def test_constructor_is_external_optional(self):
         """is_external is optional: contours may be stored without marking holes."""
         cs = ContourSeries(
