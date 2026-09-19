@@ -113,7 +113,8 @@ groups:
     - null
     - null
     doc: Number of valid vertices in each contour slot. 0 means the slot holds
-      no contour on that frame.
+      no contour on that frame. No count may exceed the number of vertices each
+      slot of 'data' holds.
   - name: is_external
     dtype: bool
     dims:

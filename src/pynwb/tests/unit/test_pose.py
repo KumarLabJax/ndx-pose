@@ -185,6 +185,36 @@ class TestContourSeriesConstructor(TestCase):
                 rate=30.0,
             )
 
+    def test_vertex_count_beyond_capacity_raises(self):
+        """A count larger than the vertex capacity would silently truncate a contour.
+
+        A reader taking data[frame, slot, :vertex_count] would get fewer vertices than it
+        was promised, with nothing to signal the loss, so reject it at construction.
+        """
+        msg = (
+            "ContourSeries 'vertex_count' has a maximum of 6, but each contour slot of "
+            "'data' holds only 5 vertices."
+        )
+        with self.assertRaisesWith(ValueError, msg):
+            ContourSeries(
+                name="contours",
+                reference_frame="(0, 0) is the top left corner of the video frame.",
+                data=np.zeros((4, 2, 5, 2)),
+                vertex_count=np.full((4, 2), 6, dtype=np.uint32),
+                rate=30.0,
+            )
+
+    def test_vertex_count_at_capacity_is_allowed(self):
+        """Filling every vertex slot is the ordinary case, not an off-by-one."""
+        cs = ContourSeries(
+            name="contours",
+            reference_frame="(0, 0) is the top left corner of the video frame.",
+            data=np.zeros((4, 2, 5, 2)),
+            vertex_count=np.full((4, 2), 5, dtype=np.uint32),
+            rate=30.0,
+        )
+        self.assertEqual(cs.vertex_count.max(), 5)
+
     def test_data_must_be_four_dimensional(self):
         with self.assertRaises(ValueError):
             ContourSeries(

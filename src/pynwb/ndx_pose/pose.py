@@ -101,6 +101,24 @@ def _shapes_agree(shape_a, shape_b):
     return all(a is None or b is None or a == b for a, b in zip(shape_a, shape_b))
 
 
+def _max_value(values):
+    """Return the largest value in an in-memory array, or None when it is not one.
+
+    Only an array that is already in memory is scanned. Finding the maximum of an h5py
+    dataset or a chunk iterator would read the whole array, which for a long recording is
+    the largest thing in the file. numpy arrays expose 'max'; those lazy objects do not.
+    """
+    if isinstance(values, (list, tuple)):
+        maxima = [max(row) for row in values if len(row)]
+        return max(maxima) if maxima else None
+    if not hasattr(values, "max"):
+        return None
+    try:
+        return values.max()
+    except ValueError:  # an empty array has no maximum
+        return None
+
+
 @register_class("ContourSeries", "ndx-pose")
 class ContourSeries(TimeSeries):
     """Polygon contours outlining a segmented instance over time.
@@ -153,7 +171,8 @@ class ContourSeries(TimeSeries):
             "shape": (None, None),
             "doc": (
                 "Number of valid vertices in each contour slot, with shape "
-                "(num_frames, num_contours). 0 means the slot holds no contour on that frame."
+                "(num_frames, num_contours). 0 means the slot holds no contour on that frame. "
+                "No count may exceed the number of vertices each slot of 'data' holds."
             ),
         },
         {
@@ -232,6 +251,17 @@ class ContourSeries(TimeSeries):
                     "ContourSeries '%s' shape %s must match 'vertex_count' shape %s "
                     "(num_frames, num_contours)." % (name, value_shape, count_shape)
                 )
+
+        # A count larger than the vertex capacity of 'data' would silently truncate a
+        # contour: a reader taking data[frame, slot, :vertex_count] would get fewer
+        # vertices than it was promised, with nothing to signal the loss.
+        capacity = data_shape[2] if data_shape is not None and len(data_shape) > 2 else None
+        observed = _max_value(vertex_count)
+        if capacity is not None and observed is not None and observed > capacity:
+            raise ValueError(
+                "ContourSeries 'vertex_count' has a maximum of %d, but each contour slot of "
+                "'data' holds only %d vertices." % (observed, capacity)
+            )
 
         super().__init__(**kwargs)
         self.reference_frame = reference_frame

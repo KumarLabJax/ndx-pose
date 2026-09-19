@@ -185,7 +185,7 @@ def main():
                 name="vertex_count",
                 doc=(
                     "Number of valid vertices in each contour slot. 0 means the slot holds no contour on "
-                    "that frame."
+                    "that frame. No count may exceed the number of vertices each slot of 'data' holds."
                 ),
                 dtype="uint32",
                 dims=["num_frames", "num_contours"],
