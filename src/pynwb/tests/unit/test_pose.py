@@ -102,6 +102,7 @@ class TestContourSeriesConstructor(TestCase):
                 name="contours",
                 data=np.zeros((4, 2, 5, 2)),
                 vertex_count=np.zeros((4, 2), dtype=np.uint32),
+                is_external=np.ones((4, 2), dtype=bool),
                 rate=30.0,
             )
 
@@ -112,6 +113,7 @@ class TestContourSeriesConstructor(TestCase):
             reference_frame="(0, 0) is the top left corner of the video frame.",
             data=np.zeros((4, 2, 5, 2), dtype=np.int32),
             vertex_count=np.full((4, 2), 5, dtype=np.uint32),
+            is_external=np.ones((4, 2), dtype=bool),
             rate=30.0,
         )
         linked = ContourSeries(
@@ -119,6 +121,7 @@ class TestContourSeriesConstructor(TestCase):
             reference_frame="(0, 0) is the top left corner of the video frame.",
             data=base,
             vertex_count=np.full((4, 2), 5, dtype=np.uint32),
+            is_external=np.ones((4, 2), dtype=bool),
             rate=30.0,
         )
         np.testing.assert_array_equal(linked.data, base.data)
@@ -130,6 +133,7 @@ class TestContourSeriesConstructor(TestCase):
             reference_frame="(0, 0) is the top left corner of the video frame.",
             data=np.zeros((4, 2, 5, 2), dtype=np.int32),
             vertex_count=np.full((4, 2), 5, dtype=np.uint32),
+            is_external=np.ones((4, 2), dtype=bool),
             rate=30.0,
         )
         msg = (
@@ -142,19 +146,24 @@ class TestContourSeriesConstructor(TestCase):
                 reference_frame="(0, 0) is the top left corner of the video frame.",
                 data=base,
                 vertex_count=np.full((4, 9), 5, dtype=np.uint32),
+                is_external=np.ones((4, 9), dtype=bool),
                 rate=30.0,
             )
 
-    def test_constructor_is_external_optional(self):
-        """is_external is optional: contours may be stored without marking holes."""
-        cs = ContourSeries(
-            name="contours",
-            reference_frame="(0, 0) is the top left corner of the video frame.",
-            data=np.zeros((4, 2, 5, 2)),
-            vertex_count=np.zeros((4, 2), dtype=np.uint32),
-            rate=30.0,
-        )
-        self.assertIsNone(cs.is_external)
+    def test_is_external_is_required(self):
+        """Polygons that don't say which are holes can't be rendered or measured.
+
+        A producer that retrieves only outer boundaries passes True throughout, so this
+        costs nothing to supply.
+        """
+        with self.assertRaises(TypeError):
+            ContourSeries(
+                name="contours",
+                reference_frame="(0, 0) is the top left corner of the video frame.",
+                data=np.zeros((4, 2, 5, 2)),
+                vertex_count=np.zeros((4, 2), dtype=np.uint32),
+                rate=30.0,
+            )
 
     def test_vertex_count_shape_mismatch_raises(self):
         msg = (
@@ -167,6 +176,7 @@ class TestContourSeriesConstructor(TestCase):
                 reference_frame="(0, 0) is the top left corner of the video frame.",
                 data=np.zeros((4, 2, 5, 2)),
                 vertex_count=np.zeros((4, 3), dtype=np.uint32),
+                is_external=np.ones((4, 3), dtype=bool),
                 rate=30.0,
             )
 
@@ -201,6 +211,7 @@ class TestContourSeriesConstructor(TestCase):
                 reference_frame="(0, 0) is the top left corner of the video frame.",
                 data=np.zeros((4, 2, 5, 2)),
                 vertex_count=np.full((4, 2), 6, dtype=np.uint32),
+                is_external=np.ones((4, 2), dtype=bool),
                 rate=30.0,
             )
 
@@ -211,6 +222,7 @@ class TestContourSeriesConstructor(TestCase):
             reference_frame="(0, 0) is the top left corner of the video frame.",
             data=np.zeros((4, 2, 5, 2)),
             vertex_count=np.full((4, 2), 5, dtype=np.uint32),
+            is_external=np.ones((4, 2), dtype=bool),
             rate=30.0,
         )
         self.assertEqual(cs.vertex_count.max(), 5)
@@ -222,6 +234,7 @@ class TestContourSeriesConstructor(TestCase):
                 reference_frame="(0, 0) is the top left corner of the video frame.",
                 data=np.zeros((4, 5, 2)),
                 vertex_count=np.zeros((4, 2), dtype=np.uint32),
+                is_external=np.ones((4, 2), dtype=bool),
                 rate=30.0,
             )
 
@@ -271,6 +284,7 @@ class TestContourSeriesConstructor(TestCase):
                 reference_frame="(0, 0) is the top left corner of the video frame.",
                 data=np.zeros((4, 2, 5, 2)),
                 vertex_count=np.zeros((4, 2), dtype=np.uint32),
+                is_external=np.ones((4, 2), dtype=bool),
                 contour_group=np.zeros((4, 3), dtype=np.uint32),
                 rate=30.0,
             )

@@ -196,12 +196,12 @@ def main():
                 doc=(
                     "True where the contour slot is an external boundary, i.e. an outer edge of the instance, "
                     "and False where it is an internal boundary, i.e. a hole. Has no meaning where "
-                    "'vertex_count' is 0."
+                    "'vertex_count' is 0. A producer that retrieves only outer boundaries sets this "
+                    "True throughout."
                 ),
                 dtype="bool",
                 dims=["num_frames", "num_contours"],
                 shape=[None, None],
-                quantity="?",
             ),
             NWBDatasetSpec(
                 name="contour_group",

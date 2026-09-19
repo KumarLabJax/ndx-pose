@@ -125,8 +125,8 @@ groups:
     - null
     doc: True where the contour slot is an external boundary, i.e. an outer edge
       of the instance, and False where it is an internal boundary, i.e. a hole.
-      Has no meaning where 'vertex_count' is 0.
-    quantity: '?'
+      Has no meaning where 'vertex_count' is 0. A producer that retrieves only
+      outer boundaries sets this True throughout.
   - name: contour_group
     dtype: uint32
     dims:

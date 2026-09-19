@@ -202,28 +202,6 @@ class TestContourSeriesRoundtrip(TestCase):
             self.assertEqual(read_cs.data.dtype, data.dtype)
             self.assertEqual(read_cs.reference_frame, cs.reference_frame)
 
-    def test_roundtrip_no_is_external(self):
-        """is_external is optional and its absence must survive the roundtrip."""
-        cs = ContourSeries(
-            name="contours",
-            reference_frame="(0, 0) is the top left corner of the video frame.",
-            data=np.arange(4 * 2 * 5 * 2, dtype=np.int32).reshape((4, 2, 5, 2)),
-            vertex_count=np.full((4, 2), 5, dtype=np.uint32),
-            rate=30.0,
-            description="Outline without hole markings.",
-        )
-        behavior_pm = self.nwbfile.create_processing_module(name="behavior", description="processed behavioral data")
-        behavior_pm.add(cs)
-
-        with NWBHDF5IO(self.path, mode="w") as io:
-            io.write(self.nwbfile)
-
-        with NWBHDF5IO(self.path, mode="r", load_namespaces=True) as io:
-            read_nwbfile = io.read()
-            read_cs = read_nwbfile.processing["behavior"]["contours"]
-            self.assertIsNone(read_cs.is_external)
-            np.testing.assert_array_equal(read_cs.data[:], cs.data)
-
 
 class TestContourSeriesRoundtripPyNWB(NWBH5IOFlexMixin, TestCase):
     """Complex, more complete roundtrip test for ContourSeries using pynwb.testing infrastructure."""

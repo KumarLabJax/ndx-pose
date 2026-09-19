@@ -127,8 +127,9 @@ class ContourSeries(TimeSeries):
     vertices in each slot, so trailing slots and trailing vertices in ``data`` are unused padding
     and carry no meaning. More than one contour may be needed to describe an instance on a frame:
     an outer boundary plus one or more holes, or a body that an occluder splits into disjoint parts.
-    ``contour_group``, when known, records which component each contour belongs to, so a hole stays
-    attached to the part of a split instance that contains it.
+    ``is_external`` tells the two apart, without which the polygons cannot be rendered or measured,
+    so it is required. ``contour_group``, when known, records which component each contour belongs
+    to, so a hole stays attached to the part of a split instance that contains it.
 
     Vertex positions are in the frame of reference described by ``reference_frame``. This type extends
     TimeSeries rather than SpatialSeries, whose ``data`` may have at most two dimensions, so it declares
@@ -182,9 +183,9 @@ class ContourSeries(TimeSeries):
             "doc": (
                 "True where the contour slot is an external boundary, i.e. an outer edge of the "
                 "instance, and False where it is an internal boundary, i.e. a hole. Has no meaning "
-                "where 'vertex_count' is 0."
+                "where 'vertex_count' is 0. A producer that retrieves only outer boundaries sets "
+                "this True throughout."
             ),
-            "default": None,
         },
         {
             "name": "contour_group",
@@ -243,7 +244,7 @@ class ContourSeries(TimeSeries):
                 "'data' %s (num_frames, num_contours)." % (count_shape, data_shape[:2])
             )
         for name, value in (("is_external", is_external), ("contour_group", contour_group)):
-            if value is None:
+            if value is None:  # only contour_group may be omitted
                 continue
             value_shape = get_data_shape(value)
             if not _shapes_agree(count_shape, value_shape):

@@ -168,7 +168,7 @@ classDiagram
             data : array[numeric; dims [frame, contour, vertex, [x, y]]]
             reference_frame : str
             vertex_count : array[uint32; dims [frame, contour]]
-            is_external : array[bool; dims [frame, contour]], optional
+            is_external : array[bool; dims [frame, contour]]
             contour_group : array[uint32; dims [frame, contour]], optional
         }
 
@@ -268,7 +268,7 @@ classDiagram
             data : array[numeric; dims [frame, contour, vertex, [x, y]]]
             reference_frame : str
             vertex_count : array[uint32; dims [frame, contour]]
-            is_external : array[bool; dims [frame, contour]], optional
+            is_external : array[bool; dims [frame, contour]]
             contour_group : array[uint32; dims [frame, contour]], optional
         }
 
